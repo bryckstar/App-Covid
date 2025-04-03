@@ -27,6 +27,17 @@ else:
     with open("scaler.pkl", "rb") as f:
         scaler = pickle.load(f)
 
+# Función de validación de la edad
+def validar_edad(edad):
+    try:
+        edad = int(edad)
+        if 0 <= edad <= 120:
+            return edad, None
+        else:
+            return None, "⚠️ La edad debe estar entre 0 y 120 años ⚠️"
+    except ValueError:
+        return None, "⚠️ Solo se permiten números en la edad ⚠️"
+
 # Función de predicción
 def predict_covid(gender, age_year, fever, cough, runny_nose, pneumonia, diarrhea, lung_infection, travel_history, isolation_treatment):
     try:
@@ -47,7 +58,7 @@ st.markdown(
     <style>
         .main { background-color: #f0f2f6; }
         .stButton>button { background-color: #ff4b4b; color: white; font-size: 20px; border-radius: 10px; }
-        .stTextInput, .stNumberInput, .stSelectbox, .stCheckbox { font-size: 18px; }
+        .stTextInput, .stSelectbox, .stCheckbox { font-size: 18px; }
         .result-box { font-size: 22px; font-weight: bold; text-align: center; padding: 10px; border-radius: 10px; }
     </style>
     """,
@@ -64,7 +75,7 @@ st.markdown("---")
 col1, col2 = st.columns(2)
 with col1:
     gender = st.selectbox("Género", ["Hombre", "Mujer"])
-    age_year = st.number_input("Edad", min_value=0, max_value=120, step=1)
+    age_input = st.text_input("Edad", "")
     fever = st.checkbox("Fiebre")
     cough = st.checkbox("Tos")
     runny_nose = st.checkbox("Secreción nasal")
@@ -80,7 +91,10 @@ st.markdown("---")
 
 # Botón de diagnóstico
 if st.button("🔍 Diagnosticar"):
-    if model is None or scaler is None:
+    age_year, error_msg = validar_edad(age_input)
+    if error_msg:
+        st.error(error_msg)
+    elif model is None or scaler is None:
         st.error("Error: No se pudo cargar el modelo o el escalador correctamente.")
     else:
         result = predict_covid(gender, age_year, fever, cough, runny_nose, pneumonia, diarrhea, lung_infection, travel_history, isolation_treatment)
