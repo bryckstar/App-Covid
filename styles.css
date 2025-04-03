@@ -1,0 +1,26 @@
+/* Fondo principal */
+.main { 
+    background-color: #f0f2f6; 
+}
+
+/* Estilo de los botones */
+.stButton>button { 
+    background-color: #ff4b4b; 
+    color: white; 
+    font-size: 20px; 
+    border-radius: 10px; 
+}
+
+/* Tamaño de los campos de entrada */
+.stTextInput, .stNumberInput, .stSelectbox, .stCheckbox { 
+    font-size: 18px; 
+}
+
+/* Resultado del diagnóstico */
+.result-box { 
+    font-size: 22px; 
+    font-weight: bold; 
+    text-align: center; 
+    padding: 10px; 
+    border-radius: 10px; 
+}

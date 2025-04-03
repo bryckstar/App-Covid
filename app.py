@@ -13,30 +13,23 @@ import os
 # Configuración de la página (debe ser lo primero en ejecutarse)
 st.set_page_config(page_title="Diagnóstico de COVID-19", layout="wide")
 
-# Verificar si los archivos existen
-if not os.path.exists("modelo_covid.h5"):
-    st.error("Error: El archivo 'modelo_covid.h5' no se encuentra.")
-    model = None
-else:
+# Cargar modelo y escalador con caché
+@st.cache_resource()
+def load_resources():
+    if not os.path.exists("modelo_covid.h5"):
+        st.error("Error: El archivo 'modelo_covid.h5' no se encuentra.")
+        return None, None
     model = load_model("modelo_covid.h5")
-
-if not os.path.exists("scaler.pkl"):
-    st.error("Error: El archivo 'scaler.pkl' no se encuentra.")
-    scaler = None
-else:
+    
+    if not os.path.exists("scaler.pkl"):
+        st.error("Error: El archivo 'scaler.pkl' no se encuentra.")
+        return model, None
     with open("scaler.pkl", "rb") as f:
         scaler = pickle.load(f)
+    
+    return model, scaler
 
-# Función de validación de la edad
-def validar_edad(edad):
-    try:
-        edad = int(edad)
-        if 0 <= edad <= 120:
-            return edad, None
-        else:
-            return None, "⚠️ La edad debe estar entre 0 y 120 años ⚠️"
-    except ValueError:
-        return None, "⚠️ Solo se permiten números en la edad ⚠️"
+model, scaler = load_resources()
 
 # Función de predicción
 def predict_covid(gender, age_year, fever, cough, runny_nose, pneumonia, diarrhea, lung_infection, travel_history, isolation_treatment):
@@ -52,22 +45,15 @@ def predict_covid(gender, age_year, fever, cough, runny_nose, pneumonia, diarrhe
     except Exception as e:
         return "⚠️ Error en el procesamiento ⚠️"
 
-# Estilos CSS
-st.markdown(
-    """
-    <style>
-        .main { background-color: #f0f2f6; }
-        .stButton>button { background-color: #ff4b4b; color: white; font-size: 20px; border-radius: 10px; }
-        .stTextInput, .stSelectbox, .stCheckbox { font-size: 18px; }
-        .result-box { font-size: 22px; font-weight: bold; text-align: center; padding: 10px; border-radius: 10px; }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
+# Cargar estilos CSS
+if os.path.exists("styles.css"):
+    with open("styles.css") as f:
+        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
-# Título
-title_html = "<h1 style='text-align: center; color: #333;'>Sistema de Diagnóstico de COVID-19</h1>"
-st.markdown(title_html, unsafe_allow_html=True)
+# Encabezado en HTML
+st.markdown("""
+    <h1 style='text-align: center; color: #333;'>Sistema de Diagnóstico de COVID-19</h1>
+""", unsafe_allow_html=True)
 
 st.markdown("---")
 
@@ -75,7 +61,7 @@ st.markdown("---")
 col1, col2 = st.columns(2)
 with col1:
     gender = st.selectbox("Género", ["Hombre", "Mujer"])
-    age_input = st.text_input("Edad", "")
+    age_year = st.text_input("Edad", "")
     fever = st.checkbox("Fiebre")
     cough = st.checkbox("Tos")
     runny_nose = st.checkbox("Secreción nasal")
@@ -89,14 +75,24 @@ with col2:
 
 st.markdown("---")
 
+# Validación de entrada
+def validate_input():
+    if not age_year.isdigit():
+        st.error("Por favor, ingrese una edad válida en números.")
+        return False
+    age = int(age_year)
+    if age < 0 or age > 120:
+        st.error("Por favor, ingrese una edad entre 0 y 120.")
+        return False
+    return age
+
 # Botón de diagnóstico
 if st.button("🔍 Diagnosticar"):
-    age_year, error_msg = validar_edad(age_input)
-    if error_msg:
-        st.error(error_msg)
-    elif model is None or scaler is None:
-        st.error("Error: No se pudo cargar el modelo o el escalador correctamente.")
-    else:
-        result = predict_covid(gender, age_year, fever, cough, runny_nose, pneumonia, diarrhea, lung_infection, travel_history, isolation_treatment)
-        result_color = "#ff4b4b" if "Positivo" in result else "#4CAF50"
-        st.markdown(f'<div class="result-box" style="background-color: {result_color}; color: white;">{result}</div>', unsafe_allow_html=True)
+    age = validate_input()
+    if age is not False:
+        if model is None or scaler is None:
+            st.error("Error: No se pudo cargar el modelo o el escalador correctamente.")
+        else:
+            result = predict_covid(gender, age, fever, cough, runny_nose, pneumonia, diarrhea, lung_infection, travel_history, isolation_treatment)
+            result_color = "#ff4b4b" if "Positivo" in result else "#4CAF50"
+            st.markdown(f'<div class="result-box" style="background-color: {result_color}; color: white;">{result}</div>', unsafe_allow_html=True)
